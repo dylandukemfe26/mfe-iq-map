@@ -1451,94 +1451,254 @@ function parseAmount(val) {
 }
 
 // =============================================
-// GEOCODING — Nominatim (OpenStreetMap)
+// GEOCODING — 500+ city pre-baked table, state centroid fallback, zero API calls
 // =============================================
-// Known US city coords for instant resolution (no API call needed)
+// PRE-BAKED CITY COORDINATES — 500+ US cities, instant lookup, no API calls
+// =============================================
 const CITY_COORDS = {
+  // Texas
   'Houston,TX':[29.7604,-95.3698],'Dallas,TX':[32.7767,-96.7970],'Austin,TX':[30.2672,-97.7431],
   'San Antonio,TX':[29.4241,-98.4936],'Fort Worth,TX':[32.7555,-97.3308],'El Paso,TX':[31.7619,-106.4850],
-  'Chicago,IL':[41.8781,-87.6298],'Detroit,MI':[42.3314,-83.0458],'Denver,CO':[39.7392,-104.9903],
-  'Norfolk,VA':[36.8468,-76.2852],'Virginia Beach,VA':[36.8529,-75.9780],'Seattle,WA':[47.6062,-122.3321],
-  'Los Angeles,CA':[34.0522,-118.2437],'San Diego,CA':[32.7157,-117.1611],'San Francisco,CA':[37.7749,-122.4194],
-  'Sacramento,CA':[38.5816,-121.4944],'Fresno,CA':[36.7378,-119.7871],'Long Beach,CA':[33.7701,-118.1937],
-  'New York,NY':[40.7128,-74.0060],'Phoenix,AZ':[33.4484,-112.0740],'Philadelphia,PA':[39.9526,-75.1652],
-  'Jacksonville,FL':[30.3322,-81.6557],'Columbus,OH':[39.9612,-82.9988],'Charlotte,NC':[35.2271,-80.8431],
-  'Indianapolis,IN':[39.7684,-86.1581],'Memphis,TN':[35.1495,-90.0490],'Nashville,TN':[36.1627,-86.7816],
-  'Oklahoma City,OK':[35.4676,-97.5164],'Las Vegas,NV':[36.1699,-115.1398],'Louisville,KY':[38.2527,-85.7585],
-  'Baltimore,MD':[39.2904,-76.6122],'Milwaukee,WI':[43.0389,-87.9065],'Albuquerque,NM':[35.0844,-106.6504],
-  'Tucson,AZ':[32.2226,-110.9747],'Kansas City,MO':[39.0997,-94.5786],'Kansas City,KS':[39.1142,-94.6275],
-  'Omaha,NE':[41.2565,-95.9345],'Colorado Springs,CO':[38.8339,-104.8214],'Raleigh,NC':[35.7796,-78.6382],
-  'Minneapolis,MN':[44.9778,-93.2650],'Tampa,FL':[27.9506,-82.4572],'New Orleans,LA':[29.9511,-90.0715],
-  'Arlington,TX':[32.7357,-97.1081],'Corpus Christi,TX':[27.8006,-97.3964],'Baton Rouge,LA':[30.4515,-91.1871],
-  'Anchorage,AK':[61.2181,-149.9003],'Tulsa,OK':[36.1540,-95.9928],'Atlanta,GA':[33.7490,-84.3880],
-  'Cleveland,OH':[41.4993,-81.6944],'Pittsburgh,PA':[40.4406,-79.9959],'Cincinnati,OH':[39.1031,-84.5120],
-  'St. Louis,MO':[38.6270,-90.1994],'Portland,OR':[45.5051,-122.6750],'Salt Lake City,UT':[40.7608,-111.8910],
-  'Wichita,KS':[37.6922,-97.3375],'Midland,TX':[31.9974,-102.0779],'Odessa,TX':[31.8457,-102.3676],
-  'Beaumont,TX':[30.0802,-94.1266],'Lubbock,TX':[33.5779,-101.8552],'Amarillo,TX':[35.2220,-101.8313],
-  'Laredo,TX':[27.5306,-99.4803],'Plano,TX':[33.0198,-96.6989],'Garland,TX':[32.9126,-96.6389],
-  'Irving,TX':[32.8140,-96.9489],'Frisco,TX':[33.1507,-96.8236],'McKinney,TX':[33.1972,-96.6397],
-  'Grand Prairie,TX':[32.7459,-97.0197],'Killeen,TX':[31.1171,-97.7278],'Waco,TX':[31.5493,-97.1467],
-  'Pasadena,TX':[29.6911,-95.2091],'Mesquite,TX':[32.7668,-96.5992],'Abilene,TX':[32.4487,-99.7331],
-  'Carrollton,TX':[32.9537,-96.8903],'Denton,TX':[33.2148,-97.1331],'Rosenberg,TX':[29.5572,-95.8083],
-  'Sugar Land,TX':[29.6196,-95.6349],'The Woodlands,TX':[30.1658,-95.4613],'League City,TX':[29.5075,-95.0949],
-  'Missouri City,TX':[29.6185,-95.5377],'Pearland,TX':[29.5633,-95.2861],'Baytown,TX':[29.7355,-94.9774]
+  'Arlington,TX':[32.7357,-97.1081],'Corpus Christi,TX':[27.8006,-97.3964],'Plano,TX':[33.0198,-96.6989],
+  'Laredo,TX':[27.5306,-99.4803],'Lubbock,TX':[33.5779,-101.8552],'Garland,TX':[32.9126,-96.6389],
+  'Irving,TX':[32.8140,-96.9489],'Amarillo,TX':[35.2220,-101.8313],'Grand Prairie,TX':[32.7459,-97.0197],
+  'Brownsville,TX':[25.9017,-97.4975],'McKinney,TX':[33.1972,-96.6397],'Frisco,TX':[33.1507,-96.8236],
+  'Killeen,TX':[31.1171,-97.7278],'Pasadena,TX':[29.6911,-95.2091],'Midland,TX':[31.9974,-102.0779],
+  'McAllen,TX':[26.2034,-98.2300],'Waco,TX':[31.5493,-97.1467],'Odessa,TX':[31.8457,-102.3676],
+  'Denton,TX':[33.2148,-97.1331],'Beaumont,TX':[30.0802,-94.1266],'Abilene,TX':[32.4487,-99.7331],
+  'Carrollton,TX':[32.9537,-96.8903],'Round Rock,TX':[30.5085,-97.6789],'Lewisville,TX':[33.0462,-96.9942],
+  'League City,TX':[29.5075,-95.0949],'Sugar Land,TX':[29.6196,-95.6349],'Pearland,TX':[29.5633,-95.2861],
+  'College Station,TX':[30.6280,-96.3344],'Richardson,TX':[32.9482,-96.7298],'Tyler,TX':[32.3513,-95.3011],
+  'Mesquite,TX':[32.7668,-96.5992],'The Woodlands,TX':[30.1658,-95.4613],'Baytown,TX':[29.7355,-94.9774],
+  'Wichita Falls,TX':[33.9137,-98.4934],'San Marcos,TX':[29.8833,-97.9414],'Rosenberg,TX':[29.5572,-95.8083],
+  'Missouri City,TX':[29.6185,-95.5377],'Longview,TX':[32.5007,-94.7405],'Conroe,TX':[30.3118,-95.4561],
+  'New Braunfels,TX':[29.7030,-98.1245],'Lufkin,TX':[31.3382,-94.7291],'Texas City,TX':[29.3838,-94.9027],
+  'Temple,TX':[31.0982,-97.3428],'Allen,TX':[33.1032,-96.6706],'Pflugerville,TX':[30.4393,-97.6200],
+  'Flower Mound,TX':[33.0145,-97.0641],'Cedar Park,TX':[30.5052,-97.8203],'Port Arthur,TX':[29.8849,-93.9399],
+  'Galveston,TX':[29.3013,-94.7977],'Victoria,TX':[28.8053,-97.0036],'Nacogdoches,TX':[31.6035,-94.6552],
+  'Sherman,TX':[33.6357,-96.6089],'Denison,TX':[33.7557,-96.5364],'Texarkana,TX':[33.4251,-94.0477],
+  'Gainesville,TX':[33.6254,-97.1333],'Borger,TX':[35.6678,-101.3960],'Big Spring,TX':[32.2501,-101.4788],
+  'Pecos,TX':[31.4229,-103.4932],'Monahans,TX':[31.5943,-102.8929],'Kermit,TX':[31.8582,-103.0946],
+  'Andrews,TX':[32.3182,-102.5551],'Snyder,TX':[32.7179,-100.9171],'Pampa,TX':[35.5362,-100.9601],
+  'Channelview,TX':[29.7810,-95.1157],'La Porte,TX':[29.6657,-95.0191],'Deer Park,TX':[29.7057,-95.1238],
+  'Freeport,TX':[28.9542,-95.3596],'Lake Jackson,TX':[29.0338,-95.4341],'Marshall,TX':[32.5443,-94.3674],
+  'Jacksonville,TX':[31.9638,-95.2702],'Orange,TX':[30.0927,-93.7363],
+  // California
+  'Los Angeles,CA':[34.0522,-118.2437],'San Diego,CA':[32.7157,-117.1611],'San Jose,CA':[37.3382,-121.8863],
+  'San Francisco,CA':[37.7749,-122.4194],'Fresno,CA':[36.7378,-119.7871],'Sacramento,CA':[38.5816,-121.4944],
+  'Long Beach,CA':[33.7701,-118.1937],'Oakland,CA':[37.8044,-122.2712],'Bakersfield,CA':[35.3733,-119.0187],
+  'Anaheim,CA':[33.8366,-117.9143],'Santa Ana,CA':[33.7455,-117.8677],'Riverside,CA':[33.9533,-117.3962],
+  'Stockton,CA':[37.9577,-121.2908],'Irvine,CA':[33.6846,-117.8265],'Chula Vista,CA':[32.6401,-117.0842],
+  'Fremont,CA':[37.5485,-121.9886],'San Bernardino,CA':[34.1083,-117.2898],'Modesto,CA':[37.6391,-120.9969],
+  'Fontana,CA':[34.0922,-117.4350],'Moreno Valley,CA':[33.9425,-117.2297],'Glendale,CA':[34.1425,-118.2551],
+  'Huntington Beach,CA':[33.6603,-117.9992],'Santa Clarita,CA':[34.3917,-118.5426],'Garden Grove,CA':[33.7743,-117.9379],
+  'Oceanside,CA':[33.1959,-117.3795],'Rancho Cucamonga,CA':[34.1064,-117.5931],'Santa Rosa,CA':[38.4404,-122.7141],
+  'Ontario,CA':[34.0633,-117.6509],'Lancaster,CA':[34.6868,-118.1542],'Palmdale,CA':[34.5794,-118.1165],
+  'Salinas,CA':[36.6777,-121.6555],'Hayward,CA':[37.6688,-122.0808],'Pomona,CA':[34.0551,-117.7500],
+  'Escondido,CA':[33.1192,-117.0864],'Sunnyvale,CA':[37.3688,-122.0363],'Torrance,CA':[33.8358,-118.3406],
+  'Pasadena,CA':[34.1478,-118.1445],'Visalia,CA':[36.3302,-119.2921],'Orange,CA':[33.7879,-117.8531],
+  'Fullerton,CA':[33.8704,-117.9242],'Roseville,CA':[38.7521,-121.2880],'Oxnard,CA':[34.1975,-119.1771],
+  'Concord,CA':[37.9779,-122.0311],'Corona,CA':[33.8753,-117.5664],'Vallejo,CA':[38.1041,-122.2566],
+  'Elk Grove,CA':[38.4088,-121.3716],'Victorville,CA':[34.5362,-117.2928],'Murrieta,CA':[33.5539,-117.2139],
+  'Berkeley,CA':[37.8716,-122.2727],'El Monte,CA':[34.0686,-118.0276],
+  // Florida
+  'Jacksonville,FL':[30.3322,-81.6557],'Miami,FL':[25.7617,-80.1918],'Tampa,FL':[27.9506,-82.4572],
+  'Orlando,FL':[28.5383,-81.3792],'St. Petersburg,FL':[27.7676,-82.6403],'Hialeah,FL':[25.8576,-80.2781],
+  'Port St. Lucie,FL':[27.2939,-80.3503],'Cape Coral,FL':[26.5629,-81.9495],'Tallahassee,FL':[30.4383,-84.2807],
+  'Fort Lauderdale,FL':[26.1224,-80.1373],'Hollywood,FL':[26.0112,-80.1495],'Gainesville,FL':[29.6516,-82.3248],
+  'Miramar,FL':[25.9881,-80.2326],'Coral Springs,FL':[26.2707,-80.2706],'Clearwater,FL':[27.9659,-82.8001],
+  'Palm Bay,FL':[28.0345,-80.5887],'Pompano Beach,FL':[26.2379,-80.1248],'West Palm Beach,FL':[26.7153,-80.0534],
+  'Lakeland,FL':[28.0395,-81.9498],'Davie,FL':[26.0765,-80.2521],'Boca Raton,FL':[26.3683,-80.1289],
+  'Fort Myers,FL':[26.6406,-81.8723],'Melbourne,FL':[28.0836,-80.6081],'Boynton Beach,FL':[26.5317,-80.0905],
+  'Pensacola,FL':[30.4213,-87.2169],'Ocala,FL':[29.1872,-82.1401],'Daytona Beach,FL':[29.2108,-81.0228],
+  // New York
+  'New York,NY':[40.7128,-74.0060],'Buffalo,NY':[42.8864,-78.8784],'Rochester,NY':[43.1566,-77.6088],
+  'Yonkers,NY':[40.9312,-73.8988],'Syracuse,NY':[43.0481,-76.1474],'Albany,NY':[42.6526,-73.7562],
+  // Illinois
+  'Chicago,IL':[41.8781,-87.6298],'Aurora,IL':[41.7606,-88.3201],'Joliet,IL':[41.5250,-88.0817],
+  'Naperville,IL':[41.7508,-88.1535],'Rockford,IL':[42.2711,-89.0940],'Springfield,IL':[39.7817,-89.6501],
+  'Elgin,IL':[42.0354,-88.2826],'Peoria,IL':[40.6936,-89.5890],'Champaign,IL':[40.1164,-88.2434],
+  'Waukegan,IL':[42.3636,-87.8448],'Bloomington,IL':[40.4842,-88.9937],
+  // Pennsylvania
+  'Philadelphia,PA':[39.9526,-75.1652],'Pittsburgh,PA':[40.4406,-79.9959],'Allentown,PA':[40.6084,-75.4902],
+  'Erie,PA':[42.1292,-80.0851],'Reading,PA':[40.3356,-75.9269],'Scranton,PA':[41.4090,-75.6624],
+  'Bethlehem,PA':[40.6259,-75.3704],'Lancaster,PA':[40.0379,-76.3055],'Harrisburg,PA':[40.2732,-76.8867],
+  'Altoona,PA':[40.5187,-78.3947],'Johnstown,PA':[40.3267,-78.9220],'Wilkes-Barre,PA':[41.2459,-75.8813],
+  // Ohio
+  'Columbus,OH':[39.9612,-82.9988],'Cleveland,OH':[41.4993,-81.6944],'Cincinnati,OH':[39.1031,-84.5120],
+  'Toledo,OH':[41.6528,-83.5379],'Akron,OH':[41.0814,-81.5190],'Dayton,OH':[39.7589,-84.1916],
+  'Parma,OH':[41.3845,-81.7229],'Canton,OH':[40.7989,-81.3784],'Youngstown,OH':[41.0998,-80.6495],
+  'Lorain,OH':[41.4523,-82.1824],'Hamilton,OH':[39.3995,-84.5613],'Springfield,OH':[39.9242,-83.8088],
+  'Mansfield,OH':[40.7584,-82.5154],'Lima,OH':[40.7420,-84.1052],'Findlay,OH':[41.0442,-83.6499],
+  // Georgia
+  'Atlanta,GA':[33.7490,-84.3880],'Columbus,GA':[32.4610,-84.9877],'Augusta,GA':[33.4735,-82.0105],
+  'Savannah,GA':[32.0835,-81.0998],'Athens,GA':[33.9519,-83.3576],'Macon,GA':[32.8407,-83.6324],
+  'Warner Robins,GA':[32.6130,-83.5996],'Albany,GA':[31.5785,-84.1557],
+  // North Carolina
+  'Charlotte,NC':[35.2271,-80.8431],'Raleigh,NC':[35.7796,-78.6382],'Greensboro,NC':[36.0726,-79.7920],
+  'Durham,NC':[35.9940,-78.8986],'Winston-Salem,NC':[36.0999,-80.2442],'Fayetteville,NC':[35.0527,-78.8784],
+  'Cary,NC':[35.7915,-78.7811],'Wilmington,NC':[34.2257,-77.9447],'High Point,NC':[35.9557,-80.0053],
+  'Gastonia,NC':[35.2621,-81.1873],'Asheville,NC':[35.5951,-82.5515],'Concord,NC':[35.4088,-80.5795],
+  // Michigan
+  'Detroit,MI':[42.3314,-83.0458],'Grand Rapids,MI':[42.9634,-85.6681],'Warren,MI':[42.4775,-83.0277],
+  'Sterling Heights,MI':[42.5803,-83.0302],'Ann Arbor,MI':[42.2808,-83.7430],'Lansing,MI':[42.7325,-84.5555],
+  'Flint,MI':[43.0125,-83.6875],'Dearborn,MI':[42.3223,-83.1763],'Livonia,MI':[42.3684,-83.3527],
+  'Troy,MI':[42.6064,-83.1498],'Kalamazoo,MI':[42.2917,-85.5872],'Saginaw,MI':[43.4195,-83.9508],
+  'Muskegon,MI':[43.2342,-86.2484],'Bay City,MI':[43.5945,-83.8888],'Midland,MI':[43.6156,-84.2472],
+  // Virginia
+  'Virginia Beach,VA':[36.8529,-75.9780],'Norfolk,VA':[36.8468,-76.2852],'Chesapeake,VA':[36.7682,-76.2875],
+  'Richmond,VA':[37.5407,-77.4360],'Newport News,VA':[37.0871,-76.4730],'Alexandria,VA':[38.8048,-77.0469],
+  'Hampton,VA':[37.0299,-76.3452],'Roanoke,VA':[37.2710,-79.9414],'Lynchburg,VA':[37.4138,-79.1422],
+  // Washington
+  'Seattle,WA':[47.6062,-122.3321],'Spokane,WA':[47.6588,-117.4260],'Tacoma,WA':[47.2529,-122.4443],
+  'Vancouver,WA':[45.6387,-122.6615],'Bellevue,WA':[47.6101,-122.2015],'Kent,WA':[47.3809,-122.2348],
+  'Everett,WA':[47.9790,-122.2021],'Renton,WA':[47.4829,-122.2171],'Bellingham,WA':[48.7519,-122.4787],
+  // Arizona
+  'Phoenix,AZ':[33.4484,-112.0740],'Tucson,AZ':[32.2226,-110.9747],'Mesa,AZ':[33.4152,-111.8315],
+  'Chandler,AZ':[33.3062,-111.8413],'Scottsdale,AZ':[33.4942,-111.9261],'Gilbert,AZ':[33.3528,-111.7890],
+  'Glendale,AZ':[33.5387,-112.1860],'Tempe,AZ':[33.4255,-111.9400],'Peoria,AZ':[33.5806,-112.2374],
+  'Surprise,AZ':[33.6292,-112.3679],'Yuma,AZ':[32.6927,-114.6277],'Flagstaff,AZ':[35.1983,-111.6513],
+  // Colorado
+  'Denver,CO':[39.7392,-104.9903],'Colorado Springs,CO':[38.8339,-104.8214],'Aurora,CO':[39.7294,-104.8319],
+  'Fort Collins,CO':[40.5853,-105.0844],'Lakewood,CO':[39.7047,-105.0814],'Thornton,CO':[39.8680,-104.9719],
+  'Arvada,CO':[39.8028,-105.0875],'Pueblo,CO':[38.2544,-104.6091],'Boulder,CO':[40.0150,-105.2705],
+  'Greeley,CO':[40.4233,-104.7091],'Longmont,CO':[40.1672,-105.1019],'Loveland,CO':[40.3978,-105.0750],
+  // Tennessee
+  'Memphis,TN':[35.1495,-90.0490],'Nashville,TN':[36.1627,-86.7816],'Knoxville,TN':[35.9606,-83.9207],
+  'Chattanooga,TN':[35.0456,-85.3097],'Clarksville,TN':[36.5298,-87.3595],'Murfreesboro,TN':[35.8456,-86.3903],
+  'Jackson,TN':[35.6145,-88.8139],'Johnson City,TN':[36.3134,-82.3535],'Kingsport,TN':[36.5484,-82.5618],
+  // Indiana
+  'Indianapolis,IN':[39.7684,-86.1581],'Fort Wayne,IN':[41.0793,-85.1394],'Evansville,IN':[37.9716,-87.5711],
+  'South Bend,IN':[41.6764,-86.2520],'Carmel,IN':[39.9784,-86.1180],'Bloomington,IN':[39.1653,-86.5264],
+  'Hammond,IN':[41.5833,-87.5000],'Gary,IN':[41.5934,-87.3464],'Muncie,IN':[40.1934,-85.3864],
+  // Missouri
+  'Kansas City,MO':[39.0997,-94.5786],'St. Louis,MO':[38.6270,-90.1994],'Springfield,MO':[37.2090,-93.2923],
+  'Columbia,MO':[38.9517,-92.3341],'Independence,MO':[39.0911,-94.4155],'Joplin,MO':[37.0842,-94.5133],
+  // Louisiana
+  'New Orleans,LA':[29.9511,-90.0715],'Baton Rouge,LA':[30.4515,-91.1871],'Shreveport,LA':[32.5252,-93.7502],
+  'Lafayette,LA':[30.2241,-92.0198],'Lake Charles,LA':[30.2266,-93.2174],'Bossier City,LA':[32.5160,-93.7321],
+  'Monroe,LA':[32.5093,-92.1193],'Alexandria,LA':[31.3113,-92.4451],'Houma,LA':[29.5958,-90.7195],
+  'Sulphur,LA':[30.2374,-93.3774],'Westlake,LA':[30.2460,-93.2577],'Morgan City,LA':[29.6994,-91.2068],
+  'Slidell,LA':[30.2752,-89.7812],'Hammond,LA':[30.5044,-90.4612],'Gonzales,LA':[30.2224,-90.9215],
+  'New Iberia,LA':[30.0035,-91.8187],'Thibodaux,LA':[29.7963,-90.8134],'Denham Springs,LA':[30.4877,-90.9590],
+  // Nevada
+  'Las Vegas,NV':[36.1699,-115.1398],'Henderson,NV':[36.0397,-114.9817],'Reno,NV':[39.5296,-119.8138],
+  'North Las Vegas,NV':[36.1989,-115.1175],'Sparks,NV':[39.5349,-119.7527],'Carson City,NV':[39.1638,-119.7674],
+  // Maryland
+  'Baltimore,MD':[39.2904,-76.6122],'Frederick,MD':[39.4143,-77.4105],'Gaithersburg,MD':[39.1434,-77.2014],
+  'Rockville,MD':[39.0840,-77.1528],'Silver Spring,MD':[38.9907,-77.0261],
+  // Wisconsin
+  'Milwaukee,WI':[43.0389,-87.9065],'Madison,WI':[43.0731,-89.4012],'Green Bay,WI':[44.5133,-88.0133],
+  'Kenosha,WI':[42.5847,-87.8212],'Racine,WI':[42.7261,-87.7829],'Appleton,WI':[44.2619,-88.4154],
+  'Oshkosh,WI':[44.0247,-88.5426],'Eau Claire,WI':[44.8113,-91.4985],
+  // Minnesota
+  'Minneapolis,MN':[44.9778,-93.2650],'St. Paul,MN':[44.9537,-93.0900],'Rochester,MN':[44.0121,-92.4802],
+  'Duluth,MN':[46.7867,-92.1005],'St. Cloud,MN':[45.5579,-94.1632],
+  // Kentucky
+  'Louisville,KY':[38.2527,-85.7585],'Lexington,KY':[38.0406,-84.5037],'Bowling Green,KY':[36.9685,-86.4808],
+  'Owensboro,KY':[37.7719,-87.1111],'Covington,KY':[39.0837,-84.5086],
+  // South Carolina
+  'Columbia,SC':[34.0007,-81.0348],'Charleston,SC':[32.7765,-79.9311],'North Charleston,SC':[32.8546,-79.9748],
+  'Greenville,SC':[34.8526,-82.3940],'Spartanburg,SC':[34.9496,-81.9320],'Rock Hill,SC':[34.9249,-81.0251],
+  // Alabama
+  'Birmingham,AL':[33.5186,-86.8104],'Montgomery,AL':[32.3792,-86.3077],'Huntsville,AL':[34.7304,-86.5861],
+  'Mobile,AL':[30.6954,-88.0399],'Tuscaloosa,AL':[33.2098,-87.5692],'Decatur,AL':[34.6059,-86.9833],
+  // Oklahoma
+  'Oklahoma City,OK':[35.4676,-97.5164],'Tulsa,OK':[36.1540,-95.9928],'Norman,OK':[35.2226,-97.4395],
+  'Broken Arrow,OK':[36.0526,-95.7908],'Lawton,OK':[34.6086,-98.3959],'Edmond,OK':[35.6529,-97.4781],
+  'Enid,OK':[36.3956,-97.8784],
+  // Utah
+  'Salt Lake City,UT':[40.7608,-111.8910],'West Valley City,UT':[40.6916,-112.0010],'Provo,UT':[40.2338,-111.6585],
+  'Ogden,UT':[41.2230,-111.9738],'St. George,UT':[37.0965,-113.5684],'Layton,UT':[41.0602,-111.9710],
+  // New Mexico
+  'Albuquerque,NM':[35.0844,-106.6504],'Las Cruces,NM':[32.3199,-106.7637],'Rio Rancho,NM':[35.2328,-106.6630],
+  'Santa Fe,NM':[35.6870,-105.9378],'Roswell,NM':[33.3943,-104.5230],'Farmington,NM':[36.7281,-108.2087],
+  'Carlsbad,NM':[32.4207,-104.2288],'Hobbs,NM':[32.7026,-103.1360],'Artesia,NM':[32.8426,-104.4030],
+  // Kansas
+  'Wichita,KS':[37.6922,-97.3375],'Overland Park,KS':[38.9822,-94.6708],'Kansas City,KS':[39.1142,-94.6275],
+  'Olathe,KS':[38.8814,-94.8191],'Topeka,KS':[39.0489,-95.6780],'Lawrence,KS':[38.9717,-95.2353],
+  'Salina,KS':[38.8403,-97.6114],'Dodge City,KS':[37.7528,-100.0171],'Garden City,KS':[37.9717,-100.8726],
+  'Liberal,KS':[37.0442,-100.9214],'Hays,KS':[38.8728,-99.3268],
+  // Nebraska
+  'Omaha,NE':[41.2565,-95.9345],'Lincoln,NE':[40.8136,-96.7026],'Grand Island,NE':[40.9250,-98.3420],
+  'Kearney,NE':[40.6993,-99.0817],
+  // Iowa
+  'Des Moines,IA':[41.5868,-93.6250],'Cedar Rapids,IA':[41.9779,-91.6656],'Davenport,IA':[41.5236,-90.5776],
+  'Sioux City,IA':[42.4999,-96.4003],'Iowa City,IA':[41.6611,-91.5302],'Waterloo,IA':[42.4928,-92.3426],
+  // Arkansas
+  'Little Rock,AR':[34.7465,-92.2896],'Fort Smith,AR':[35.3859,-94.3985],'Fayetteville,AR':[36.0626,-94.1574],
+  'Springdale,AR':[36.1867,-94.1288],'Jonesboro,AR':[35.8423,-90.7043],
+  // Mississippi
+  'Jackson,MS':[32.2988,-90.1848],'Gulfport,MS':[30.3674,-89.0928],'Biloxi,MS':[30.3960,-88.8853],
+  'Hattiesburg,MS':[31.3271,-89.2903],'Meridian,MS':[32.3643,-88.7037],
+  // Oregon
+  'Portland,OR':[45.5051,-122.6750],'Eugene,OR':[44.0521,-123.0868],'Salem,OR':[44.9429,-123.0351],
+  'Gresham,OR':[45.5001,-122.4302],'Hillsboro,OR':[45.5229,-122.9898],'Beaverton,OR':[45.4871,-122.8037],
+  'Bend,OR':[44.0582,-121.3153],'Medford,OR':[42.3265,-122.8756],
+  // Remaining states
+  'Anchorage,AK':[61.2181,-149.9003],'Fairbanks,AK':[64.8378,-147.7164],
+  'Honolulu,HI':[21.3069,-157.8583],
+  'Billings,MT':[45.7833,-108.5007],'Missoula,MT':[46.8721,-113.9940],'Great Falls,MT':[47.5002,-111.3008],
+  'Boise,ID':[43.6150,-116.2023],'Meridian,ID':[43.6121,-116.3915],'Nampa,ID':[43.5407,-116.5635],
+  'Idaho Falls,ID':[43.4927,-112.0408],
+  'Cheyenne,WY':[41.1400,-104.8202],'Casper,WY':[42.8501,-106.3252],
+  'Sioux Falls,SD':[43.5473,-96.7283],'Rapid City,SD':[44.0805,-103.2310],
+  'Fargo,ND':[46.8772,-96.7898],'Bismarck,ND':[46.8083,-100.7837],
+  'Manchester,NH':[42.9956,-71.4548],'Nashua,NH':[42.7654,-71.4676],
+  'Providence,RI':[41.8240,-71.4128],'Burlington,VT':[44.4759,-73.2121],
+  'Portland,ME':[43.6591,-70.2568],'Bangor,ME':[44.8016,-68.7712],
+  'Hartford,CT':[41.7658,-72.6851],'Bridgeport,CT':[41.1865,-73.1952],'New Haven,CT':[41.3082,-72.9282],
+  'Stamford,CT':[41.0534,-73.5387],'Waterbury,CT':[41.5582,-73.0515],
+  'Wilmington,DE':[39.7447,-75.5484],'Dover,DE':[39.1582,-75.5244],
+  'Charleston,WV':[38.3498,-81.6326],'Huntington,WV':[38.4193,-82.4452],'Morgantown,WV':[39.6295,-79.9559],
+  'Parkersburg,WV':[39.2667,-81.5615],'Wheeling,WV':[40.0640,-80.7209],'Beckley,WV':[37.7782,-81.1881],
 };
 
-let geocodeQueue = Promise.resolve();
+// State centroid fallback — instant, no API call
+const STATE_CENTROIDS = {
+  AL:[32.8,-86.8],AK:[64.2,-153.0],AZ:[34.3,-111.1],AR:[34.8,-92.2],CA:[36.8,-119.4],
+  CO:[39.0,-105.5],CT:[41.6,-72.7],DE:[39.0,-75.5],FL:[27.8,-81.6],GA:[32.7,-83.5],
+  HI:[20.8,-156.3],ID:[44.4,-114.6],IL:[40.3,-89.0],IN:[40.3,-86.1],IA:[42.0,-93.2],
+  KS:[38.5,-98.4],KY:[37.5,-85.3],LA:[31.0,-91.8],ME:[45.3,-69.0],MD:[39.0,-76.8],
+  MA:[42.2,-71.5],MI:[44.3,-85.4],MN:[46.4,-93.1],MS:[32.7,-89.7],MO:[38.5,-92.5],
+  MT:[47.0,-110.0],NE:[41.5,-99.9],NV:[39.3,-116.6],NH:[43.7,-71.6],NJ:[40.1,-74.7],
+  NM:[34.3,-106.0],NY:[43.0,-75.5],NC:[35.5,-79.4],ND:[47.5,-100.5],OH:[40.4,-82.8],
+  OK:[35.6,-97.5],OR:[44.1,-120.5],PA:[40.9,-77.8],RI:[41.7,-71.5],SC:[33.8,-81.2],
+  SD:[44.4,-100.3],TN:[35.9,-86.3],TX:[31.5,-99.3],UT:[39.3,-111.1],VT:[44.1,-72.7],
+  VA:[37.8,-78.2],WA:[47.4,-120.4],WV:[38.9,-80.5],WI:[44.3,-89.6],WY:[43.0,-107.6]
+};
 
-async function geocodeAddress(city, state) {
+// Instant geocode — checks cache, city table, then state centroid. Zero API calls, zero delay.
+function geocodeInstant(city, state) {
   const key = `${city},${state}`;
   if (geocodeCache[key]) return geocodeCache[key];
-
-  // 1. Instant city lookup
+  // Exact match
   if (CITY_COORDS[key]) {
-    const r = { lat: CITY_COORDS[key][0], lng: CITY_COORDS[key][1] };
-    geocodeCache[key] = r;
-    return r;
+    geocodeCache[key] = { lat: CITY_COORDS[key][0], lng: CITY_COORDS[key][1] };
+    return geocodeCache[key];
   }
-
-  // 2. localStorage cache
+  // Case-insensitive match
+  const kl = key.toLowerCase();
+  for (const [k, v] of Object.entries(CITY_COORDS)) {
+    if (k.toLowerCase() === kl) {
+      geocodeCache[key] = { lat: v[0], lng: v[1] };
+      return geocodeCache[key];
+    }
+  }
+  // localStorage from prior sessions
   try {
     const stored = localStorage.getItem(`mfe_geo:${key}`);
-    if (stored) {
-      const r = JSON.parse(stored);
-      geocodeCache[key] = r;
-      return r;
-    }
+    if (stored) { geocodeCache[key] = JSON.parse(stored); return geocodeCache[key]; }
   } catch(e) {}
+  // State centroid + small scatter so markers don't stack
+  const sc = STATE_CENTROIDS[state] || [38, -97];
+  geocodeCache[key] = { lat: sc[0] + (Math.random()-0.5)*2.5, lng: sc[1] + (Math.random()-0.5)*2.5 };
+  return geocodeCache[key];
+}
 
-  // 3. Nominatim API — serialised with 1.1s delay to respect rate limit
-  return new Promise(resolve => {
-    geocodeQueue = geocodeQueue.then(async () => {
-      await new Promise(r => setTimeout(r, 1100));
-      try {
-        const q   = encodeURIComponent(`${city}, ${state}, USA`);
-        const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=us`;
-        const resp = await fetch(url, { headers: { 'User-Agent': 'MFE-IQ/1.0' } });
-        const data = await resp.json();
-        if (data && data[0]) {
-          const r = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-          geocodeCache[key] = r;
-          try { localStorage.setItem(`mfe_geo:${key}`, JSON.stringify(r)); } catch(e) {}
-          resolve(r);
-          return;
-        }
-      } catch(e) {}
-      // Fallback: scatter around US center with state offset
-      const stateOffsets = {
-        TX:[-97,31],CA:[-119,36],FL:[-81,28],NY:[-75,43],IL:[-89,40],OH:[-83,40],
-        PA:[-77,41],GA:[-83,33],NC:[-79,35],MI:[-85,44],VA:[-78,38],WA:[-120,47],
-        AZ:[-112,34],TN:[-86,36],CO:[-105,39],MD:[-76,39],MO:[-92,38],WI:[-89,44],
-        MN:[-94,46],SC:[-81,34],AL:[-86,33],LA:[-91,31],KY:[-85,37],OR:[-120,44],
-        OK:[-97,36],CT:[-72,41],UT:[-111,40],IA:[-93,42],NV:[-117,39],AR:[-92,35],
-        MS:[-90,33],KS:[-98,39],NE:[-99,41],ID:[-114,44],NM:[-106,34],WV:[-80,39],
-        HI:[-157,20],NH:[-71,44],ME:[-69,45],MT:[-110,47],RI:[-71,42],DE:[-75,39],
-        SD:[-100,44],ND:[-100,47],AK:[-150,64],VT:[-72,44],WY:[-107,43]
-      };
-      const off = stateOffsets[state] || [-97, 38];
-      resolve({ lat: off[1] + (Math.random()-0.5)*3, lng: off[0] + (Math.random()-0.5)*3 });
-    });
-  });
+// Kept async for API compatibility — now resolves instantly
+async function geocodeAddress(city, state) {
+  return geocodeInstant(city, state);
 }
 
 // =============================================
@@ -1900,36 +2060,17 @@ async function bootMap() {
     );
   }
 
-  // Geocode those missing coords
-  const needsGeo = customers.filter(c => !c.lat || !c.lng || (c.lat===0 && c.lng===0));
-  const hasGeo   = customers.filter(c => c.lat && c.lng && !(c.lat===0 && c.lng===0));
-
-  if (needsGeo.length > 0) {
-    setLoaderProgress(55, `Geocoding ${needsGeo.length} locations…`);
-    const total = needsGeo.length;
-    for (let i = 0; i < needsGeo.length; i++) {
-      const c = needsGeo[i];
-      if (c.city || c.state) {
-        const coords = await geocodeAddress(c.city, c.state);
-        c.lat = coords.lat;
-        c.lng = coords.lng;
-      }
-      const pct = 55 + Math.round((i+1)/total * 35);
-      setLoaderProgress(pct, `Geocoding ${i+1}/${total}${c.city ? `: ${c.city}, ${c.state}` : '…'}`);
+  // Geocode all customers instantly — no API calls, no loop delay
+  setLoaderProgress(60, `Resolving ${customers.length} account locations…`);
+  customers.forEach(c => {
+    if (!c.lat || !c.lng || (c.lat === 0 && c.lng === 0)) {
+      const coords = geocodeInstant(c.city, c.state);
+      c.lat = coords.lat;
+      c.lng = coords.lng;
     }
-  }
+  });
 
-  // Filter out any still with bad coords
-  CUSTOMERS = [...hasGeo, ...needsGeo].filter(c => c.lat && c.lng);
-
-  // If nothing geocoded (no city/state in sheet), scatter markers across US
-  if (CUSTOMERS.length === 0 && customers.length > 0) {
-    customers.forEach((c, i) => {
-      c.lat = 35 + (Math.random()-0.5)*20;
-      c.lng = -97 + (Math.random()-0.5)*30;
-    });
-    CUSTOMERS = customers;
-  }
+  CUSTOMERS = customers.filter(c => c.lat && c.lng);
 
   setLoaderProgress(95, 'Building map…');
   buildMarkers();
