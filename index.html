@@ -3,107 +3,113 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MFE IQ · Sales Map</title>
+<title>MFE IQ - Sales Map</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg:#0f1117; --panel:#161b27; --border:#252d3d; --accent:#3b82f6;
-    --success:#10b981; --warning:#f59e0b; --purple:#8b5cf6;
-    --text:#e2e8f0; --muted:#64748b; --danger:#ef4444; --ibg:#1e2535;
-  }
-  html,body{height:100%;overflow:hidden;}
-  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;}
-  #app{display:flex;flex-direction:column;height:100vh;}
-  #hdr{display:flex;align-items:center;gap:12px;padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;}
-  .hdr-logo{font-size:12px;letter-spacing:3px;text-transform:uppercase;font-weight:700;color:var(--accent);}
-  #hdr-status{margin-left:auto;font-size:11px;color:var(--muted);}
-  #cfg-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 11px;border-radius:4px;font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s;}
-  #cfg-btn:hover{border-color:var(--accent);color:var(--accent);}
-  #err-banner{display:none;padding:8px 16px;font-size:12px;color:#fca5a5;background:rgba(239,68,68,.1);border-bottom:1px solid rgba(239,68,68,.3);text-align:center;flex-shrink:0;}
-  #body{display:flex;flex:1;overflow:hidden;}
-  #sidebar{width:250px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
-  #stats{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);}
-  .stat{padding:12px;text-align:center;}
-  .stat+.stat{border-left:1px solid var(--border);}
-  .stat-val{display:block;font-size:20px;font-weight:700;color:var(--accent);}
-  .stat-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
-  #filters{padding:14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px;}
-  .flabel{display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-  .finput{width:100%;background:var(--ibg);border:1px solid var(--border);color:var(--text);padding:7px 10px;font-size:12px;font-family:inherit;border-radius:5px;outline:none;transition:border-color .15s;}
-  .finput:focus{border-color:var(--accent);}
-  .chips{display:flex;flex-wrap:wrap;gap:5px;}
-  .chip{padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--ibg);transition:all .12s;white-space:nowrap;}
-  .chip.on{border-color:var(--accent);color:var(--accent);background:rgba(59,130,246,.12);}
-  #reset-btn{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-family:inherit;cursor:pointer;border-radius:5px;transition:all .15s;margin-top:2px;}
-  #reset-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .legend{border-top:1px solid var(--border);padding-top:12px;}
-  .leg-row{display:flex;align-items:center;gap:8px;padding:3px 0;color:var(--muted);font-size:11px;}
-  .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-  #map-wrap{flex:1;position:relative;}
-  #map{width:100%;height:100%;}
-  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:1000;}
-  #loading-ov{background:var(--bg);}
-  #setup-ov{background:rgba(15,17,23,.97);}
-  .spinner{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--accent);animation:spin .7s linear infinite;}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .ovr-title{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--text);}
-  .ovr-step{font-size:12px;color:var(--muted);}
-  .prog{width:200px;height:2px;background:var(--border);border-radius:1px;overflow:hidden;}
-  .prog-fill{height:100%;background:var(--accent);transition:width .3s;}
-  .setup-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:28px 32px;width:480px;display:flex;flex-direction:column;gap:16px;}
-  .setup-card h2{font-size:15px;font-weight:600;}
-  .setup-card a{color:var(--accent);text-decoration:none;}
-  .setup-card a:hover{text-decoration:underline;}
-  .step-row{display:flex;gap:12px;align-items:flex-start;}
-  .step-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
-  .step-text{font-size:12px;color:var(--muted);line-height:1.65;}
-  .step-text strong{color:var(--text);}
-  .step-text code{background:var(--ibg);padding:1px 5px;border-radius:3px;font-size:11px;}
-  .url-input{width:100%;background:var(--ibg);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-size:11px;font-family:'Courier New',monospace;border-radius:5px;outline:none;transition:border-color .15s;}
-  .url-input:focus{border-color:var(--accent);}
-  #setup-error{font-size:12px;color:var(--danger);display:none;}
-  #connect-btn{background:var(--accent);border:none;color:#fff;padding:9px;font-size:13px;font-weight:600;border-radius:5px;cursor:pointer;font-family:inherit;transition:opacity .15s;}
-  #connect-btn:hover{opacity:.85;}
-  #connect-btn:disabled{opacity:.4;cursor:not-allowed;}
-  .leaflet-popup-content-wrapper{background:var(--panel)!important;border:1px solid var(--border)!important;border-radius:8px!important;color:var(--text)!important;box-shadow:0 8px 24px rgba(0,0,0,.6)!important;font-family:'Segoe UI',system-ui!important;padding:0!important;}
-  .leaflet-popup-content{margin:0!important;min-width:250px!important;font-size:12px;}
-  .leaflet-popup-tip{background:var(--border)!important;}
-  .leaflet-close{color:var(--muted)!important;}
-  .pop-hdr{padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(59,130,246,.06);border-radius:8px 8px 0 0;}
-  .pop-name{font-size:13px;font-weight:600;color:var(--accent);}
-  .pop-loc{font-size:11px;color:var(--muted);margin-top:1px;}
-  .pop-body{padding:10px 14px;display:flex;flex-direction:column;gap:5px;}
-  .pop-row{display:flex;justify-content:space-between;align-items:center;}
-  .pk{color:var(--muted);font-size:11px;}
-  .pv{color:var(--text);font-size:11px;font-weight:500;text-align:right;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;text-transform:uppercase;}
-  .b-cust{background:rgba(16,185,129,.15);color:#10b981;}
-  .b-opp{background:rgba(245,158,11,.15);color:#f59e0b;}
-  .b-lead{background:rgba(59,130,246,.15);color:#60a5fa;}
-  .b-other{background:rgba(139,92,246,.15);color:#a78bfa;}
-  .pop-deals{border-top:1px solid var(--border);padding:8px 14px 10px;}
-  .pop-dlbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
-  .deal-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border);}
-  .deal-row:last-child{border-bottom:none;}
-  .d-name{color:var(--text);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .d-amt{color:var(--success);font-weight:600;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--panel:#161b27;--border:#252d3d;--accent:#3b82f6;
+  --success:#10b981;--warning:#f59e0b;--purple:#8b5cf6;
+  --text:#e2e8f0;--muted:#64748b;--danger:#ef4444;--ibg:#1e2535;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+#app{display:flex;flex-direction:column;height:100vh}
+#hdr{display:flex;align-items:center;gap:12px;padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+.hdr-logo{font-size:12px;letter-spacing:3px;text-transform:uppercase;font-weight:700;color:var(--accent)}
+#hdr-status{margin-left:auto;font-size:11px;color:var(--muted)}
+#cfg-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 11px;border-radius:4px;font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s}
+#cfg-btn:hover{border-color:var(--accent);color:var(--accent)}
+#err-banner{display:none;padding:8px 16px;font-size:12px;color:#fca5a5;background:rgba(239,68,68,.1);border-bottom:1px solid rgba(239,68,68,.3);text-align:center;flex-shrink:0}
+#body{display:flex;flex:1;overflow:hidden}
+#sidebar{width:250px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+#stats{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)}
+.stat{padding:12px;text-align:center}
+.stat+.stat{border-left:1px solid var(--border)}
+.stat-val{display:block;font-size:20px;font-weight:700;color:var(--accent)}
+.stat-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+#filters{padding:14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px}
+.flabel{display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.finput{width:100%;background:var(--ibg);border:1px solid var(--border);color:var(--text);padding:7px 10px;font-size:12px;font-family:inherit;border-radius:5px;outline:none;transition:border-color .15s}
+.finput:focus{border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;max-height:90px;overflow-y:auto}
+.chip{padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--ibg);transition:all .12s;white-space:nowrap}
+.chip.on{border-color:var(--accent);color:var(--accent);background:rgba(59,130,246,.12)}
+#reset-btn{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-family:inherit;cursor:pointer;border-radius:5px;transition:all .15s;margin-top:2px}
+#reset-btn:hover{border-color:var(--accent);color:var(--accent)}
+.legend{border-top:1px solid var(--border);padding-top:12px}
+.leg-row{display:flex;align-items:center;gap:8px;padding:3px 0;color:var(--muted);font-size:11px}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+#map-wrap{flex:1;position:relative}
+#map{width:100%;height:100%}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:1000}
+#loading-ov{background:var(--bg)}
+#setup-ov{background:rgba(15,17,23,.97)}
+.spinner{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--accent);animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ovr-title{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--text)}
+.ovr-step{font-size:12px;color:var(--muted)}
+.prog{width:220px;height:2px;background:var(--border);border-radius:1px;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);transition:width .3s}
+.setup-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:28px 32px;width:480px;display:flex;flex-direction:column;gap:16px}
+.setup-card h2{font-size:15px;font-weight:600}
+.setup-card a{color:var(--accent);text-decoration:none}
+.setup-card a:hover{text-decoration:underline}
+.step-row{display:flex;gap:12px;align-items:flex-start}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-text{font-size:12px;color:var(--muted);line-height:1.65}
+.step-text strong{color:var(--text)}
+.step-text code{background:var(--ibg);padding:1px 5px;border-radius:3px;font-size:11px}
+.url-input{width:100%;background:var(--ibg);border:1px solid var(--border);color:var(--text);padding:9px 12px;font-size:11px;font-family:'Courier New',monospace;border-radius:5px;outline:none;transition:border-color .15s}
+.url-input:focus{border-color:var(--accent)}
+#setup-error{font-size:12px;color:var(--danger);display:none}
+#connect-btn{background:var(--accent);border:none;color:#fff;padding:9px;font-size:13px;font-weight:600;border-radius:5px;cursor:pointer;font-family:inherit;transition:opacity .15s}
+#connect-btn:hover{opacity:.85}
+#connect-btn:disabled{opacity:.4;cursor:not-allowed}
+.leaflet-popup-content-wrapper{background:var(--panel)!important;border:1px solid var(--border)!important;border-radius:8px!important;color:var(--text)!important;box-shadow:0 8px 24px rgba(0,0,0,.6)!important;font-family:'Segoe UI',system-ui!important;padding:0!important}
+.leaflet-popup-content{margin:0!important;min-width:250px!important;font-size:12px}
+.leaflet-popup-tip{background:var(--border)!important}
+.leaflet-close{color:var(--muted)!important}
+.pop-hdr{padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(59,130,246,.06);border-radius:8px 8px 0 0}
+.pop-name{font-size:13px;font-weight:600;color:var(--accent)}
+.pop-loc{font-size:11px;color:var(--muted);margin-top:1px}
+.pop-body{padding:10px 14px;display:flex;flex-direction:column;gap:5px}
+.pop-row{display:flex;justify-content:space-between;align-items:center}
+.pk{color:var(--muted);font-size:11px}
+.pv{color:var(--text);font-size:11px;font-weight:500;text-align:right;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;text-transform:uppercase}
+.b-cust{background:rgba(16,185,129,.15);color:#10b981}
+.b-opp{background:rgba(245,158,11,.15);color:#f59e0b}
+.b-lead{background:rgba(59,130,246,.15);color:#60a5fa}
+.b-other{background:rgba(139,92,246,.15);color:#a78bfa}
+.pop-deals{border-top:1px solid var(--border);padding:8px 14px 10px}
+.pop-dlbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.deal-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)}
+.deal-row:last-child{border-bottom:none}
+.d-name{color:var(--text);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-amt{color:var(--success);font-weight:600}
+/* Cluster styling */
+.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(59,130,246,.25)!important}
+.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:rgba(59,130,246,.6)!important;color:#fff!important;font-weight:600}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="hdr">
-    <span class="hdr-logo">MFE IQ · Sales Map</span>
+    <span class="hdr-logo">MFE IQ - Sales Map</span>
     <span id="hdr-status">Not connected</span>
-    <button id="cfg-btn" onclick="showSetup()">⚙ Setup</button>
+    <button id="cfg-btn" onclick="showSetup()">Setup</button>
   </div>
   <div id="err-banner"></div>
   <div id="body">
     <div id="sidebar">
       <div id="stats">
-        <div class="stat"><span class="stat-val" id="s-co">—</span><span class="stat-lbl">Companies</span></div>
-        <div class="stat"><span class="stat-val" id="s-pipe">—</span><span class="stat-lbl">Pipeline</span></div>
+        <div class="stat"><span class="stat-val" id="s-co">-</span><span class="stat-lbl">Companies</span></div>
+        <div class="stat"><span class="stat-val" id="s-pipe">-</span><span class="stat-lbl">Pipeline</span></div>
       </div>
       <div id="filters">
         <div><span class="flabel">Search</span><input class="finput" type="text" id="f-search" placeholder="Company name..."></div>
@@ -111,7 +117,7 @@
         <div><span class="flabel">Industry</span><select class="finput" id="f-industry"><option value="">All industries</option></select></div>
         <div><span class="flabel">Lifecycle Stage</span><div class="chips" id="f-lifecycle"><div class="chip on" data-v="">All</div></div></div>
         <div><span class="flabel">Deal Stage</span><div class="chips" id="f-deal"><div class="chip on" data-v="">All</div></div></div>
-        <button id="reset-btn">↺ Reset filters</button>
+        <button id="reset-btn">Reset filters</button>
         <div class="legend">
           <span class="flabel">Legend</span>
           <div class="leg-row"><div class="dot" style="background:#10b981"></div>Customer</div>
@@ -124,22 +130,18 @@
     <div id="map-wrap">
       <div class="overlay" id="setup-ov">
         <div class="setup-card">
-          <h2>Setup — 3 steps</h2>
+          <h2>Connect HubSpot</h2>
           <div class="step-row">
             <div class="step-num">1</div>
-            <div class="step-text">In HubSpot → Settings → Integrations → <strong>Private Apps</strong> → Create app.<br>Required scopes: <code>crm.objects.companies.read</code>, <code>crm.objects.deals.read</code>, <code>crm.objects.owners.read</code></div>
+            <div class="step-text">Deploy <strong>hubspot_proxy.gs</strong> as a Google Apps Script Web App (Execute as: Me, Access: Anyone). Add your HubSpot Private App token to <code>HS_TOKEN</code>.</div>
           </div>
           <div class="step-row">
             <div class="step-num">2</div>
-            <div class="step-text">Open <a href="https://script.google.com" target="_blank">script.google.com</a> → New project → paste <strong>hubspot_proxy.gs</strong> → add your HubSpot token to <code>HS_TOKEN</code> → <strong>Deploy → New deployment → Web app</strong> (Execute as: Me, Who has access: Anyone) → Copy the URL.</div>
+            <div class="step-text">Paste the deployment URL below.</div>
           </div>
-          <div class="step-row">
-            <div class="step-num">3</div>
-            <div class="step-text">Paste the Apps Script deployment URL below and click Connect.</div>
-          </div>
-          <input class="url-input" type="text" id="proxy-url" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+          <input class="url-input" type="text" id="proxy-url" placeholder="https://script.google.com/macros/s/.../exec">
           <div id="setup-error"></div>
-          <button id="connect-btn" onclick="connectProxy()">Connect &amp; Load Map</button>
+          <button id="connect-btn" onclick="connectProxy()">Connect and Load Map</button>
         </div>
       </div>
       <div class="overlay" id="loading-ov" style="display:none">
@@ -152,196 +154,508 @@
     </div>
   </div>
 </div>
+
 <script>
-const STATES={AL:[32.8,-86.8],AK:[61.4,-152.4],AZ:[33.7,-111.4],AR:[35,-92.4],CA:[36.1,-119.7],CO:[39.1,-105.3],CT:[41.6,-72.8],DE:[39.3,-75.5],FL:[27.8,-81.7],GA:[33,-83.6],HI:[21.1,-157.5],ID:[44.2,-114.5],IL:[40.3,-89],IN:[39.8,-86.3],IA:[42,-93.2],KS:[38.5,-96.7],KY:[37.7,-84.7],LA:[31.2,-91.9],ME:[44.7,-69.4],MD:[39.1,-76.8],MA:[42.2,-71.5],MI:[43.3,-84.5],MN:[45.7,-93.9],MS:[32.7,-89.7],MO:[38.5,-92.3],MT:[46.9,-110.5],NE:[41.1,-98.3],NV:[38.3,-117.1],NH:[43.5,-71.6],NJ:[40.3,-74.5],NM:[34.8,-106.2],NY:[42.2,-74.9],NC:[35.6,-79.8],ND:[47.5,-99.8],OH:[40.4,-82.8],OK:[35.6,-96.9],OR:[44.6,-122.1],PA:[40.6,-77.2],RI:[41.7,-71.5],SC:[33.9,-80.9],SD:[44.3,-99.4],TN:[35.7,-86.7],TX:[31.1,-97.6],UT:[40.2,-111.9],VT:[44,-72.7],VA:[37.8,-78.2],WA:[47.4,-121.5],WV:[38.5,-81],WI:[44.3,-89.6],WY:[42.8,-107.3]};
-const SN={alabama:'AL',alaska:'AK',arizona:'AZ',arkansas:'AR',california:'CA',colorado:'CO',connecticut:'CT',delaware:'DE',florida:'FL',georgia:'GA',hawaii:'HI',idaho:'ID',illinois:'IL',indiana:'IN',iowa:'IA',kansas:'KS',kentucky:'KY',louisiana:'LA',maine:'ME',maryland:'MD',massachusetts:'MA',michigan:'MI',minnesota:'MN',mississippi:'MS',missouri:'MO',montana:'MT',nebraska:'NE',nevada:'NV','new hampshire':'NH','new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC','north dakota':'ND',ohio:'OH',oklahoma:'OK',oregon:'OR',pennsylvania:'PA','rhode island':'RI','south carolina':'SC','south dakota':'SD',tennessee:'TN',texas:'TX',utah:'UT',vermont:'VT',virginia:'VA',washington:'WA','west virginia':'WV',wisconsin:'WI',wyoming:'WY'};
+// ============================================================
+// US CITY COORDINATES LOOKUP
+// Instant geocoding - no API needed
+// ============================================================
+var CITY_COORDS = {
+"new york,ny":[40.7128,-74.006],"los angeles,ca":[34.0522,-118.2437],"chicago,il":[41.8781,-87.6298],
+"houston,tx":[29.7604,-95.3698],"phoenix,az":[33.4484,-112.074],"philadelphia,pa":[39.9526,-75.1652],
+"san antonio,tx":[29.4241,-98.4936],"san diego,ca":[32.7157,-117.1611],"dallas,tx":[32.7767,-96.797],
+"san jose,ca":[37.3382,-121.8863],"austin,tx":[30.2672,-97.7431],"jacksonville,fl":[30.3322,-81.6557],
+"fort worth,tx":[32.7555,-97.3308],"columbus,oh":[39.9612,-82.9988],"charlotte,nc":[35.2271,-80.8431],
+"indianapolis,in":[39.7684,-86.1581],"san francisco,ca":[37.7749,-122.4194],"seattle,wa":[47.6062,-122.3321],
+"denver,co":[39.7392,-104.9903],"nashville,tn":[36.1627,-86.7816],"oklahoma city,ok":[35.4676,-97.5164],
+"el paso,tx":[31.7619,-106.485],"washington,dc":[38.9072,-77.0369],"las vegas,nv":[36.1699,-115.1398],
+"boston,ma":[42.3601,-71.0589],"portland,or":[45.5051,-122.675],"louisville,ky":[38.2527,-85.7585],
+"memphis,tn":[35.1495,-90.049],"baltimore,md":[39.2904,-76.6122],"milwaukee,wi":[43.0389,-87.9065],
+"albuquerque,nm":[35.0844,-106.6504],"tucson,az":[32.2226,-110.9747],"fresno,ca":[36.7378,-119.7871],
+"mesa,az":[33.4152,-111.8315],"kansas city,mo":[39.0997,-94.5786],"sacramento,ca":[38.5816,-121.4944],
+"atlanta,ga":[33.749,-84.388],"omaha,ne":[41.2565,-95.9345],"colorado springs,co":[38.8339,-104.8214],
+"raleigh,nc":[35.7796,-78.6382],"long beach,ca":[33.7701,-118.1937],"virginia beach,va":[36.8529,-75.978],
+"minneapolis,mn":[44.9778,-93.265],"tampa,fl":[27.9506,-82.4572],"new orleans,la":[29.9511,-90.0715],
+"arlington,tx":[32.7357,-97.1081],"wichita,ks":[37.6872,-97.3301],"bakersfield,ca":[35.3733,-119.0187],
+"aurora,co":[39.7294,-104.8319],"anaheim,ca":[33.8366,-117.9143],"santa ana,ca":[33.7455,-117.8677],
+"corpus christi,tx":[27.8006,-97.3964],"riverside,ca":[33.9533,-117.3962],"lexington,ky":[38.0406,-84.5037],
+"st. louis,mo":[38.627,-90.1994],"pittsburgh,pa":[40.4406,-79.9959],"anchorage,ak":[61.2181,-149.9003],
+"stockton,ca":[37.9577,-121.2908],"cincinnati,oh":[39.1031,-84.512],"st. paul,mn":[44.9537,-93.09],
+"toledo,oh":[41.6528,-83.5379],"greensboro,nc":[36.0726,-79.7919],"newark,nj":[40.7357,-74.1724],
+"plano,tx":[33.0198,-96.6989],"henderson,nv":[36.0395,-114.9817],"lincoln,ne":[40.8136,-96.7026],
+"buffalo,ny":[42.8864,-78.8784],"jersey city,nj":[40.7178,-74.0431],"chula vista,ca":[32.6401,-117.0842],
+"orlando,fl":[28.5383,-81.3792],"st. petersburg,fl":[27.7676,-82.6403],"norfolk,va":[36.8508,-76.2859],
+"chandler,az":[33.3062,-111.8413],"laredo,tx":[27.5306,-99.4803],"madison,wi":[43.0731,-89.4012],
+"durham,nc":[35.994,-78.8986],"lubbock,tx":[33.5779,-101.8552],"north las vegas,nv":[36.1989,-115.1175],
+"winston-salem,nc":[36.0999,-80.2442],"garland,tx":[32.9126,-96.6389],"glendale,az":[33.5387,-112.1859],
+"hialeah,fl":[25.8576,-80.2781],"reno,nv":[39.5296,-119.8138],"baton rouge,la":[30.4515,-91.1871],
+"irvine,ca":[33.6846,-117.8265],"chesapeake,va":[36.7682,-76.2875],"irving,tx":[32.814,-96.9489],
+"scottsdale,az":[33.4942,-111.9261],"north las vegas,nv":[36.1989,-115.1175],"fremont,ca":[37.5485,-121.9886],
+"gilbert,az":[33.3528,-111.789],"san bernardino,ca":[34.1083,-117.2898],"birmingham,al":[33.5186,-86.8104],
+"rochester,ny":[43.1566,-77.6088],"spokane,wa":[47.6588,-117.426],"des moines,ia":[41.5868,-93.625],
+"montgomery,al":[32.3668,-86.3],  "modesto,ca":[37.6391,-120.9969],"fayetteville,nc":[35.0527,-78.8784],
+"tacoma,wa":[47.2529,-122.4443],"akron,oh":[41.0814,-81.519],"yonkers,ny":[40.9312,-73.8988],
+"oxnard,ca":[34.1975,-119.1771],"fontana,ca":[34.0922,-117.435],"columbus,ga":[32.4610,-84.9877],
+"augusta,ga":[33.4735,-82.0105],"moreno valley,ca":[33.9425,-117.2297],"glendale,ca":[34.1425,-118.255],
+"huntington beach,ca":[33.6595,-117.9988],"little rock,ar":[34.7465,-92.2896],"amarillo,tx":[35.222,-101.8313],
+"worcester,ma":[42.2626,-71.8023],"knoxville,tn":[35.9606,-83.9207],"grand rapids,mi":[42.9634,-85.6681],
+"salt lake city,ut":[40.7608,-111.891],"huntsville,al":[34.7304,-86.5861],"tallahassee,fl":[30.4518,-84.2807],
+"providence,ri":[41.824,-71.4128],"richmond,va":[37.5407,-77.436],"columbia,sc":[34.0007,-81.0348],
+"aurora,il":[41.7606,-88.32],"shreveport,la":[32.5252,-93.7502],"ontario,ca":[34.0633,-117.6509],
+"elk grove,ca":[38.4088,-121.3716],"cape coral,fl":[26.5629,-81.9495],"sioux falls,sd":[43.5473,-96.728],
+"peoria,il":[40.6936,-89.589],"springfield,mo":[37.2153,-93.2982],"pembroke pines,fl":[26.0076,-80.2963],
+"fort lauderdale,fl":[26.1224,-80.1373],"tempe,az":[33.4255,-111.9400],"eugene,or":[44.0521,-123.0868],
+"rockford,il":[42.2711,-89.094],"hartford,ct":[41.7658,-72.6851],"overland park,ks":[38.9822,-94.6708],
+"murfreesboro,tn":[35.8456,-86.3903],"glendale,ca":[34.1425,-118.255],"springfield,ma":[42.1015,-72.5898],
+"hayward,ca":[37.6688,-122.0808],"lancaster,ca":[34.6868,-118.1542],"salinas,ca":[36.6777,-121.6555],
+"palmdale,ca":[34.5794,-118.1165],"sunnyvale,ca":[37.3688,-122.0363],"pomona,ca":[34.0553,-117.7529],
+"escondido,ca":[33.1192,-117.0864],"torrance,ca":[33.8358,-118.3406],"pasadena,ca":[34.1478,-118.1445],
+"orangeburg,sc":[33.4918,-80.8651],"orange,ca":[33.7879,-117.8531],"fullerton,ca":[33.8703,-117.9253],
+"killeen,tx":[31.1171,-97.7278],"paterson,nj":[40.9176,-74.1719],"clarksville,tn":[36.5298,-87.3595],
+"springfield,il":[39.7817,-89.6501],"oceanside,ca":[33.1959,-117.3795],"garden grove,ca":[33.7743,-117.9378],
+"chattanooga,tn":[35.0456,-85.3097],"fort collins,co":[40.5853,-105.0844],"vancouver,wa":[45.6387,-122.6615],
+"santa clarita,ca":[34.3917,-118.5426],"rancho cucamonga,ca":[34.1064,-117.5931],"santa rosa,ca":[38.444,-122.7141],
+"port arthur,tx":[29.8849,-93.9399],"ontario,ca":[34.0633,-117.6509],"pembroke pines,fl":[26.0076,-80.2963],
+"columbia,mo":[38.9517,-92.3341],"fargo,nd":[46.8772,-96.7898],"worcester,ma":[42.2626,-71.8023],
+"mckinney,tx":[33.1972,-96.6398],"frisco,tx":[33.1507,-96.8236],"grand prairie,tx":[32.746,-97.0],
+"mesquite,tx":[32.7668,-96.5992],"midland,tx":[31.9973,-102.0779],"odessa,tx":[31.8457,-102.3676],
+"waco,tx":[31.5493,-97.1467],"abilene,tx":[32.4487,-99.7331],"beaumont,tx":[30.0860,-94.1018],
+"round rock,tx":[30.5082,-97.6789],"richardson,tx":[32.9483,-96.7299],"lewisville,tx":[33.0462,-96.9942],
+"denton,tx":[33.2148,-97.1331],"tyler,tx":[32.3513,-95.3011],"college station,tx":[30.6280,-96.3344],
+"pearland,tx":[29.5635,-95.2860],"league city,tx":[29.5075,-95.0949],"sugar land,tx":[29.6197,-95.6349],
+"new braunfels,tx":[29.7030,-98.1245],"carrollton,tx":[32.9537,-96.8903],"allen,tx":[33.1032,-96.6706],
+"el cajon,ca":[32.7948,-116.9625],"santa clara,ca":[37.3541,-121.9552],"costa mesa,ca":[33.6411,-117.9187],
+"vallejo,ca":[38.1041,-122.2566],"roseville,ca":[38.7521,-121.2880],"concord,ca":[37.9780,-122.031],
+"thousand oaks,ca":[34.1706,-118.8376],"simi valley,ca":[34.2694,-118.7815],"victorville,ca":[34.5362,-117.2928],
+"berkeley,ca":[37.8716,-122.2727],"fairfield,ca":[38.2494,-122.0400],"murrieta,ca":[33.5539,-117.2139],
+"temecula,ca":[33.4936,-117.1484],"el monte,ca":[34.0686,-118.0276],"downey,ca":[33.9401,-118.1332],
+"costa mesa,ca":[33.6411,-117.9187],"inglewood,ca":[33.9617,-118.3531],"west covina,ca":[34.0686,-117.9390],
+"norwalk,ca":[33.9022,-118.0818],"burbank,ca":[34.1808,-118.3090],"clearwater,fl":[27.9659,-82.8001],
+"miami,fl":[25.7617,-80.1918],"miami gardens,fl":[25.9420,-80.2456],"pompano beach,fl":[26.2379,-80.1248],
+"west palm beach,fl":[26.7153,-80.0534],"miramar,fl":[25.9871,-80.2322],"gainesville,fl":[29.6516,-82.3248],
+"coral springs,fl":[26.2711,-80.2706],"lakeland,fl":[28.0395,-81.9498],"palm bay,fl":[28.0345,-80.5887],
+"hollywood,fl":[26.0112,-80.1495],"deltona,fl":[28.9005,-81.2637],"daytona beach,fl":[29.2108,-81.0228],
+"boynton beach,fl":[26.5317,-80.0905],"port st. lucie,fl":[27.2730,-80.3542],"springfield,fl":[30.1438,-85.6019],
+"atlanta,ga":[33.7490,-84.3880],"savannah,ga":[32.0835,-81.0998],"macon,ga":[32.8407,-83.6324],
+"charleston,sc":[32.7765,-79.9311],"columbia,sc":[34.0007,-81.0348],"north charleston,sc":[32.8546,-79.9748],
+"kansas city,ks":[39.1142,-94.6275],"topeka,ks":[39.0558,-95.6890],"wichita falls,tx":[33.9137,-98.4934],
+"henderson,nv":[36.0395,-114.9817],"paradise,nv":[36.0900,-115.1481],"sunrise manor,nv":[36.2079,-115.064],
+"new haven,ct":[41.3082,-72.9282],"bridgeport,ct":[41.1670,-73.2049],"stamford,ct":[41.0534,-73.5387],
+"waterbury,ct":[41.5582,-73.0515],"macon,ga":[32.8407,-83.6324],"athens,ga":[33.9519,-83.3576],
+"jackson,ms":[32.2988,-90.1848],"biloxi,ms":[30.3960,-88.8853],"hattiesburg,ms":[31.3271,-89.2903],
+"anchorage,ak":[61.2181,-149.9003],"fairbanks,ak":[64.8378,-147.7164],"juneau,ak":[58.3005,-134.4197],
+"honolulu,hi":[21.3069,-157.8583],"pearl city,hi":[21.3972,-157.9753],"hilo,hi":[19.7297,-155.09],
+"manchester,nh":[42.9956,-71.4548],"concord,nh":[43.2081,-71.5376],"nashua,nh":[42.7654,-71.4676],
+"portland,me":[43.6591,-70.2568],"burlington,vt":[44.4759,-73.2121],"providence,ri":[41.8240,-71.4128],
+"springfield,ma":[42.1015,-72.5898],"lowell,ma":[42.6334,-71.3162],"cambridge,ma":[42.3736,-71.1097],
+"albany,ny":[42.6526,-73.7562],"syracuse,ny":[43.0481,-76.1474],"utica,ny":[43.0962,-75.2260],
+"scranton,pa":[41.4090,-75.6624],"erie,pa":[42.1292,-80.0851],"allentown,pa":[40.6084,-75.4902],
+"reading,pa":[40.3356,-75.9269],"wilmington,de":[39.7447,-75.5484],"dover,de":[39.1582,-75.5244],
+"annapolis,md":[38.9784,-76.4922],"silver spring,md":[38.9912,-77.026],"frederick,md":[39.4143,-77.4105],
+"arlington,va":[38.8816,-77.0910],"alexandria,va":[38.8048,-77.0469],"hampton,va":[37.0299,-76.3452],
+"portsmouth,va":[36.8354,-76.2983],"roanoke,va":[37.2710,-79.9414],"lynchburg,va":[37.4138,-79.1422],
+"charleston,wv":[38.3498,-81.6326],"huntington,wv":[38.4192,-82.4452],"morgantown,wv":[39.6295,-79.9559],
+"fargo,nd":[46.8772,-96.7898],"bismarck,nd":[46.8083,-100.7837],"grand forks,nd":[47.9253,-97.0329],
+"sioux falls,sd":[43.5473,-96.7283],"rapid city,sd":[44.0805,-103.2310],"aberdeen,sd":[45.4647,-98.4865],
+"billings,mt":[45.7833,-108.5007],"missoula,mt":[46.8721,-113.9940],"great falls,mt":[47.5002,-111.3008],
+"casper,wy":[42.8666,-106.3131],"cheyenne,wy":[41.1400,-104.8202],"laramie,wy":[41.3114,-105.5911],
+"boise,id":[43.6150,-116.2023],"nampa,id":[43.5407,-116.5635],"meridian,id":[43.6121,-116.3915],
+"provo,ut":[40.2338,-111.6585],"west valley city,ut":[40.6916,-112.0011],"west jordan,ut":[40.6097,-111.9391],
+"sandy,ut":[40.5521,-111.8840],"ogden,ut":[41.2230,-111.9738]
+};
 
-let PROXY_URL='';
-let map,mLayer,allCompanies=[],owners={};
-let filters={search:'',owner:'',industry:'',lifecycle:'',deal:''};
+// ============================================================
+// US STATE CENTROIDS
+// ============================================================
+var STATES = {
+  AL:[32.8,-86.8],AK:[61.4,-152.4],AZ:[33.7,-111.4],AR:[35,-92.4],CA:[36.1,-119.7],
+  CO:[39.1,-105.3],CT:[41.6,-72.8],DE:[39.3,-75.5],FL:[27.8,-81.7],GA:[33,-83.6],
+  HI:[21.1,-157.5],ID:[44.2,-114.5],IL:[40.3,-89],IN:[39.8,-86.3],IA:[42,-93.2],
+  KS:[38.5,-96.7],KY:[37.7,-84.7],LA:[31.2,-91.9],ME:[44.7,-69.4],MD:[39.1,-76.8],
+  MA:[42.2,-71.5],MI:[43.3,-84.5],MN:[45.7,-93.9],MS:[32.7,-89.7],MO:[38.5,-92.3],
+  MT:[46.9,-110.5],NE:[41.1,-98.3],NV:[38.3,-117.1],NH:[43.5,-71.6],NJ:[40.3,-74.5],
+  NM:[34.8,-106.2],NY:[42.2,-74.9],NC:[35.6,-79.8],ND:[47.5,-99.8],OH:[40.4,-82.8],
+  OK:[35.6,-96.9],OR:[44.6,-122.1],PA:[40.6,-77.2],RI:[41.7,-71.5],SC:[33.9,-80.9],
+  SD:[44.3,-99.4],TN:[35.7,-86.7],TX:[31.1,-97.6],UT:[40.2,-111.9],VT:[44,-72.7],
+  VA:[37.8,-78.2],WA:[47.4,-121.5],WV:[38.5,-81],WI:[44.3,-89.6],WY:[42.8,-107.3]
+};
+var SN={alabama:'AL',alaska:'AK',arizona:'AZ',arkansas:'AR',california:'CA',colorado:'CO',connecticut:'CT',delaware:'DE',florida:'FL',georgia:'GA',hawaii:'HI',idaho:'ID',illinois:'IL',indiana:'IN',iowa:'IA',kansas:'KS',kentucky:'KY',louisiana:'LA',maine:'ME',maryland:'MD',massachusetts:'MA',michigan:'MI',minnesota:'MN',mississippi:'MS',missouri:'MO',montana:'MT',nebraska:'NE',nevada:'NV','new hampshire':'NH','new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC','north dakota':'ND',ohio:'OH',oklahoma:'OK',oregon:'OR',pennsylvania:'PA','rhode island':'RI','south carolina':'SC','south dakota':'SD',tennessee:'TN',texas:'TX',utah:'UT',vermont:'VT',virginia:'VA',washington:'WA','west virginia':'WV',wisconsin:'WI',wyoming:'WY'};
 
-window.addEventListener('DOMContentLoaded',()=>{
-  map=L.map('map').setView([39.5,-98.35],4);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
-  mLayer=L.layerGroup().addTo(map);
-  const saved=sessionStorage.getItem('proxy_url');
-  if(saved){PROXY_URL=saved;loadData();}
+// ============================================================
+// APP STATE
+// ============================================================
+var PROXY_URL = '';
+var map, clusterGroup;
+var allCompanies = [], owners = {}, stageLabels = {};
+var filters = {search:'',owner:'',industry:'',lifecycle:'',deal:''};
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', function() {
+  map = L.map('map').setView([39.5,-98.35],4);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'(c) OpenStreetMap (c) CartoDB',subdomains:'abcd',maxZoom:19
+  }).addTo(map);
+
+  clusterGroup = L.markerClusterGroup({
+    maxClusterRadius: 60,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true
+  });
+  map.addLayer(clusterGroup);
+
+  var saved = sessionStorage.getItem('proxy_url');
+  if (saved) { PROXY_URL = saved; loadData(); }
 });
 
-function showSetup(){document.getElementById('setup-ov').style.display='flex';}
+// ============================================================
+// SETUP
+// ============================================================
+function showSetup() {
+  document.getElementById('setup-ov').style.display = 'flex';
+}
 
-async function connectProxy(){
-  const url=document.getElementById('proxy-url').value.trim();
-  const errEl=document.getElementById('setup-error');
-  errEl.style.display='none';
-  if(!url||!url.includes('script.google.com')){errEl.textContent='Please enter a valid Google Apps Script URL.';errEl.style.display='block';return;}
-  const btn=document.getElementById('connect-btn');
-  btn.disabled=true;btn.textContent='Verifying...';
-  try{
-    const r=await fetch(url+'?path=crm/v3/owners&limit=1');
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const j=await r.json();
-    if(j.error)throw new Error(j.error);
-    PROXY_URL=url;
-    sessionStorage.setItem('proxy_url',url);
-    document.getElementById('setup-ov').style.display='none';
-    loadData();
-  }catch(e){
-    errEl.textContent='Connection failed: '+e.message+'. Make sure the script is deployed with "Anyone" access.';
-    errEl.style.display='block';
-    btn.disabled=false;btn.textContent='Connect & Load Map';
+function connectProxy() {
+  var url = document.getElementById('proxy-url').value.trim();
+  var errEl = document.getElementById('setup-error');
+  errEl.style.display = 'none';
+  if (!url || url.indexOf('script.google.com') === -1) {
+    errEl.textContent = 'Please enter a valid Google Apps Script URL.';
+    errEl.style.display = 'block'; return;
   }
+  var btn = document.getElementById('connect-btn');
+  btn.disabled = true; btn.textContent = 'Verifying...';
+  fetch(url + '?path=crm/v3/owners&limit=1')
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if (j.error) throw new Error(j.error);
+      PROXY_URL = url;
+      sessionStorage.setItem('proxy_url', url);
+      document.getElementById('setup-ov').style.display = 'none';
+      loadData();
+    })
+    .catch(function(e){
+      errEl.textContent = 'Connection failed: ' + e.message;
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Connect and Load Map';
+    });
 }
 
-async function proxyGet(path,params={}){
-  const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  const url=PROXY_URL+'?path='+encodeURIComponent(path)+(qs?'&'+qs:'');
-  const r=await fetch(url);
-  if(!r.ok)throw new Error('Proxy error '+r.status);
-  const j=await r.json();
-  if(j._status&&j._status!==200)throw new Error(j.error||'API error '+j._status);
-  return j;
+// ============================================================
+// API
+// ============================================================
+function proxyGet(path, params) {
+  params = params || {};
+  var parts = [];
+  for (var k in params) parts.push(k + '=' + encodeURIComponent(params[k]));
+  var url = PROXY_URL + '?path=' + encodeURIComponent(path) + (parts.length ? '&' + parts.join('&') : '');
+  return fetch(url).then(function(r){ return r.json(); });
 }
 
-async function fetchAllPages(path,params={}){
-  const all=[];let after=null;
-  do{
-    const p=Object.assign({},params);if(after)p.after=after;
-    const data=await proxyGet(path,p);
-    all.push(...(data.results||[]));
-    after=data.paging?.next?.after||null;
-  }while(after);
-  return all;
+function fetchAllPages(path, params) {
+  var all = [];
+  function nextPage(after) {
+    var p = {};
+    for (var k in params) p[k] = params[k];
+    if (after) p.after = after;
+    return proxyGet(path, p).then(function(data){
+      var results = data.results || [];
+      all = all.concat(results);
+      var nextAfter = data.paging && data.paging.next ? data.paging.next.after : null;
+      if (nextAfter) return nextPage(nextAfter);
+      return all;
+    });
+  }
+  return nextPage(null);
 }
 
-async function loadData(){
-  document.getElementById('loading-ov').style.display='flex';
-  document.getElementById('hdr-status').textContent='Loading...';
-  setProgress(5,'Fetching owners...');
-  try{
-    const ownerList=await fetchAllPages('crm/v3/owners',{limit:100});
-    owners={};
-    ownerList.forEach(o=>{owners[String(o.id)]=(`${o.firstName||''} ${o.lastName||''}`).trim()||o.email||String(o.id);});
+// ============================================================
+// GEOCODE - instant lookup, no API calls
+// ============================================================
+function geocodeCompany(city, state) {
+  var ab = stateAbbr(state);
+  if (city) {
+    var key = (city + ',' + ab).toLowerCase().trim();
+    if (CITY_COORDS[key]) {
+      var c = CITY_COORDS[key];
+      return [c[0] + jitter(), c[1] + jitter()];
+    }
+    // try without state
+    for (var k in CITY_COORDS) {
+      if (k.split(',')[0] === city.toLowerCase().trim()) {
+        var c2 = CITY_COORDS[k];
+        return [c2[0] + jitter(), c2[1] + jitter()];
+      }
+    }
+  }
+  var fb = STATES[ab] || [39.8,-98.6];
+  return [fb[0] + jitter() * 3, fb[1] + jitter() * 3];
+}
 
-    setProgress(30,'Fetching companies...');
-    const props='name,city,state,country,zip,industry,hubspot_owner_id,lifecyclestage,annualrevenue,phone,website';
-    const compList=await fetchAllPages('crm/v3/objects/companies',{limit:100,properties:props});
+function stateAbbr(s) {
+  if (!s) return '';
+  var up = s.toUpperCase().trim();
+  if (STATES[up]) return up;
+  return SN[s.toLowerCase().trim()] || '';
+}
 
-    setProgress(60,'Fetching deals...');
-    const dealList=await fetchAllPages('crm/v3/objects/deals',{limit:100,properties:'dealname,amount,dealstage,closedate,hubspot_owner_id',associations:'companies'});
+function jitter() { return (Math.random() - 0.5) * 0.15; }
 
-    setProgress(80,'Merging...');
-    const dealMap={};
-    dealList.forEach(d=>{
-      (d.associations?.companies?.results||[]).forEach(a=>{
-        const cid=String(a.id);
-        if(!dealMap[cid])dealMap[cid]=[];
-        dealMap[cid].push({name:d.properties.dealname||'Deal',amount:parseFloat(d.properties.amount)||0,stage:d.properties.dealstage||'',close:d.properties.closedate||''});
+// ============================================================
+// LOAD DATA
+// ============================================================
+function loadData() {
+  document.getElementById('loading-ov').style.display = 'flex';
+  document.getElementById('hdr-status').textContent = 'Loading...';
+  setProgress(5, 'Fetching owners...');
+
+  // 1. Owners
+  fetchAllPages('crm/v3/owners', {limit:100})
+  .then(function(ownerList){
+    owners = {};
+    ownerList.forEach(function(o){
+      owners[String(o.id)] = ((o.firstName||'') + ' ' + (o.lastName||'')).trim() || o.email || String(o.id);
+    });
+
+    // 2. Lifecycle stage labels
+    setProgress(15, 'Fetching lifecycle stage labels...');
+    return proxyGet('crm/v3/properties/companies/lifecyclestage');
+  })
+  .then(function(lcProp){
+    stageLabels = {};
+    var opts = (lcProp && lcProp.options) ? lcProp.options : [];
+    opts.forEach(function(opt){ stageLabels[opt.value] = opt.label; });
+
+    // 3. Companies
+    setProgress(25, 'Fetching companies (this may take a moment)...');
+    return fetchAllPages('crm/v3/objects/companies', {
+      limit:100,
+      properties:'name,city,state,country,zip,industry,hubspot_owner_id,lifecyclestage,annualrevenue,phone,website'
+    });
+  })
+  .then(function(compList){
+    setProgress(70, 'Fetching deals...');
+    return fetchAllPages('crm/v3/objects/deals', {
+      limit:100,
+      properties:'dealname,amount,dealstage,closedate,hubspot_owner_id',
+      associations:'companies'
+    }).then(function(dealList){ return {compList:compList, dealList:dealList}; });
+  })
+  .then(function(data){
+    setProgress(90, 'Geocoding and building map...');
+
+    // Build deal map
+    var dealMap = {};
+    data.dealList.forEach(function(d){
+      var assocs = (d.associations && d.associations.companies && d.associations.companies.results) ? d.associations.companies.results : [];
+      assocs.forEach(function(a){
+        var cid = String(a.id);
+        if (!dealMap[cid]) dealMap[cid] = [];
+        dealMap[cid].push({
+          name:   d.properties.dealname  || 'Deal',
+          amount: parseFloat(d.properties.amount) || 0,
+          stage:  d.properties.dealstage || '',
+          close:  d.properties.closedate || ''
+        });
       });
     });
 
-    allCompanies=compList.map(c=>({
-      id:String(c.id),name:c.properties.name||'Unknown',city:c.properties.city||'',
-      state:c.properties.state||'',country:c.properties.country||'',industry:c.properties.industry||'',
-      ownerId:String(c.properties.hubspot_owner_id||''),lifecycle:c.properties.lifecyclestage||'',
-      annualrevenue:parseFloat(c.properties.annualrevenue)||0,phone:c.properties.phone||'',
-      website:c.properties.website||'',deals:dealMap[String(c.id)]||[],lat:null,lng:null,_geo:false
-    }));
+    // Build company list with instant geocoding
+    allCompanies = data.compList.map(function(c){
+      var coords = geocodeCompany(c.properties.city, c.properties.state);
+      return {
+        id:           String(c.id),
+        name:         c.properties.name           || 'Unknown',
+        city:         c.properties.city           || '',
+        state:        c.properties.state          || '',
+        country:      c.properties.country        || '',
+        industry:     c.properties.industry       || '',
+        ownerId:      String(c.properties.hubspot_owner_id || ''),
+        lifecycle:    c.properties.lifecyclestage || '',
+        annualrevenue:parseFloat(c.properties.annualrevenue) || 0,
+        phone:        c.properties.phone          || '',
+        website:      c.properties.website        || '',
+        deals:        dealMap[String(c.id)]       || [],
+        lat:          coords[0],
+        lng:          coords[1]
+      };
+    });
 
     populateFilters();
-    allCompanies.forEach(c=>{const[lat,lng]=stateCoords(c.state);c.lat=jitter(lat);c.lng=jitter(lng);});
     renderMarkers();
-    document.getElementById('loading-ov').style.display='none';
-    document.getElementById('hdr-status').textContent=`${allCompanies.length} companies · Refining locations...`;
-    geocodeAll();
-  }catch(e){
+
+    document.getElementById('loading-ov').style.display = 'none';
+    document.getElementById('hdr-status').textContent = allCompanies.length.toLocaleString() + ' companies loaded';
+  })
+  .catch(function(e){
     console.error(e);
-    document.getElementById('loading-ov').style.display='none';
-    const eb=document.getElementById('err-banner');eb.style.display='block';eb.textContent='Error: '+e.message;
-    document.getElementById('hdr-status').textContent='Error';
-  }
+    document.getElementById('loading-ov').style.display = 'none';
+    var eb = document.getElementById('err-banner');
+    eb.style.display = 'block';
+    eb.textContent = 'Error: ' + e.message;
+    document.getElementById('hdr-status').textContent = 'Error';
+  });
 }
 
-function setProgress(pct,msg){document.getElementById('prog-fill').style.width=pct+'%';document.getElementById('ovr-step').textContent=msg;}
-
-function stateCoords(s){if(!s)return[39.8,-98.6];const up=s.toUpperCase().trim();if(STATES[up])return STATES[up];const ab=SN[s.toLowerCase().trim()];return STATES[ab]||[39.8,-98.6];}
-function jitter(v){return v+(Math.random()-.5)*0.15;}
-
-async function geocodeAll(){
-  for(let i=0;i<allCompanies.length;i++){
-    const c=allCompanies[i];
-    if(c._geo||!c.city){c._geo=true;continue;}
-    try{
-      const q=encodeURIComponent(`${c.city}, ${c.state||c.country}, USA`);
-      const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=us`,{headers:{'User-Agent':'MFE-IQ/1.0'}});
-      const j=await r.json();
-      if(j.length){c.lat=jitter(parseFloat(j[0].lat));c.lng=jitter(parseFloat(j[0].lon));}
-    }catch{}
-    c._geo=true;renderMarkers();
-    document.getElementById('hdr-status').textContent=`Geocoding ${i+1}/${allCompanies.length}...`;
-    if(i<allCompanies.length-1)await new Promise(r=>setTimeout(r,1200));
-  }
-  document.getElementById('hdr-status').textContent=`${allCompanies.length} companies · Live`;
+function setProgress(pct, msg) {
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('ovr-step').textContent = msg;
 }
 
-function stageColor(lc){const s=(lc||'').toLowerCase();if(s.includes('customer'))return'#10b981';if(s.includes('opportunit')||s.includes('qualif'))return'#f59e0b';if(s.includes('lead')||s.includes('subscrib'))return'#3b82f6';return'#8b5cf6';}
-function badgeCls(lc){const s=(lc||'').toLowerCase();if(s.includes('customer'))return'b-cust';if(s.includes('opportunit')||s.includes('qualif'))return'b-opp';if(s.includes('lead')||s.includes('subscrib'))return'b-lead';return'b-other';}
-function fmtMoney(n){if(!n)return'—';if(n>=1e6)return'$'+(n/1e6).toFixed(1)+'M';if(n>=1e3)return'$'+Math.round(n/1e3)+'K';return'$'+Math.round(n);}
-function fmtStage(s){return(s||'').replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())||'—';}
+// ============================================================
+// STAGE LABELS
+// ============================================================
+function getStageLabel(val) {
+  if (!val) return 'Unknown';
+  if (stageLabels[val]) return stageLabels[val];
+  // Fallback: clean up the raw value
+  return val.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/_/g,' ').replace(/\b\w/g,function(l){return l.toUpperCase();});
+}
 
-function getVisible(){
-  return allCompanies.filter(c=>{
-    if(filters.search&&!(c.name||'').toLowerCase().includes(filters.search.toLowerCase()))return false;
-    if(filters.owner&&c.ownerId!==filters.owner)return false;
-    if(filters.industry&&c.industry!==filters.industry)return false;
-    if(filters.lifecycle&&c.lifecycle!==filters.lifecycle)return false;
-    if(filters.deal&&!(c.deals||[]).some(d=>d.stage===filters.deal))return false;
+function stageColor(lc) {
+  var s = (lc||'').toLowerCase();
+  if (s.indexOf('customer') !== -1)  return '#10b981';
+  if (s.indexOf('opportunit') !== -1 || s.indexOf('salesqualif') !== -1) return '#f59e0b';
+  if (s.indexOf('lead') !== -1 || s.indexOf('subscrib') !== -1 || s.indexOf('marketingqualif') !== -1) return '#3b82f6';
+  return '#8b5cf6';
+}
+
+function badgeCls(lc) {
+  var s = (lc||'').toLowerCase();
+  if (s.indexOf('customer') !== -1)  return 'b-cust';
+  if (s.indexOf('opportunit') !== -1 || s.indexOf('salesqualif') !== -1) return 'b-opp';
+  if (s.indexOf('lead') !== -1 || s.indexOf('subscrib') !== -1 || s.indexOf('marketingqualif') !== -1) return 'b-lead';
+  return 'b-other';
+}
+
+function fmtMoney(n) {
+  if (!n) return '-';
+  if (n>=1e6) return '$'+(n/1e6).toFixed(1)+'M';
+  if (n>=1e3) return '$'+Math.round(n/1e3)+'K';
+  return '$'+Math.round(n);
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function getVisible() {
+  return allCompanies.filter(function(c){
+    if (filters.search && (c.name||'').toLowerCase().indexOf(filters.search.toLowerCase()) === -1) return false;
+    if (filters.owner && c.ownerId !== filters.owner) return false;
+    if (filters.industry && c.industry !== filters.industry) return false;
+    if (filters.lifecycle && c.lifecycle !== filters.lifecycle) return false;
+    if (filters.deal) {
+      var has = (c.deals||[]).some(function(d){ return d.stage === filters.deal; });
+      if (!has) return false;
+    }
     return true;
   });
 }
 
-function renderMarkers(){
-  mLayer.clearLayers();
-  const vis=getVisible();
-  const pipe=vis.reduce((s,c)=>s+(c.deals||[]).reduce((x,d)=>x+d.amount,0),0);
-  document.getElementById('s-co').textContent=vis.length;
-  document.getElementById('s-pipe').textContent=fmtMoney(pipe);
-  vis.forEach(c=>{
-    if(!c.lat||!c.lng)return;
-    const color=stageColor(c.lifecycle);
-    const radius=Math.max(6,Math.min(18,6+(c.deals||[]).length*1.8));
-    const m=L.circleMarker([c.lat,c.lng],{radius,fillColor:color,color:'#000',weight:1,fillOpacity:.8});
-    const own=owners[c.ownerId]||'—';
-    const lbl=fmtStage(c.lifecycle)||'Unknown';
-    const dealRows=(c.deals||[]).slice(0,5).map(d=>`<div class="deal-row"><span class="d-name">${d.name}</span><span class="d-amt">${fmtMoney(d.amount)}</span></div>`).join('');
-    m.bindPopup(`<div class="pop-hdr"><div class="pop-name">${c.name}</div><div class="pop-loc">${[c.city,c.state].filter(Boolean).join(', ')||c.country||'—'}</div></div><div class="pop-body"><div class="pop-row"><span class="pk">Owner</span><span class="pv">${own}</span></div><div class="pop-row"><span class="pk">Industry</span><span class="pv">${c.industry||'—'}</span></div><div class="pop-row"><span class="pk">Stage</span><span class="badge ${badgeCls(c.lifecycle)}">${lbl}</span></div><div class="pop-row"><span class="pk">Annual Rev</span><span class="pv">${fmtMoney(c.annualrevenue)}</span></div>${c.phone?`<div class="pop-row"><span class="pk">Phone</span><span class="pv">${c.phone}</span></div>`:''}</div>${dealRows?`<div class="pop-deals"><div class="pop-dlbl">Open deals (${(c.deals||[]).length})</div>${dealRows}</div>`:''}`);
-    mLayer.addLayer(m);
+function renderMarkers() {
+  clusterGroup.clearLayers();
+  var vis = getVisible();
+  var pipe = vis.reduce(function(s,c){ return s+(c.deals||[]).reduce(function(x,d){ return x+d.amount; },0); },0);
+  document.getElementById('s-co').textContent = vis.length.toLocaleString();
+  document.getElementById('s-pipe').textContent = fmtMoney(pipe);
+
+  var markers = [];
+  vis.forEach(function(c){
+    if (!c.lat || !c.lng) return;
+    var color = stageColor(c.lifecycle);
+    var radius = Math.max(5, Math.min(14, 5 + (c.deals||[]).length * 1.5));
+    var m = L.circleMarker([c.lat,c.lng],{
+      radius:radius, fillColor:color, color:'rgba(0,0,0,0.4)', weight:1, fillOpacity:0.8
+    });
+    var own = owners[c.ownerId] || '-';
+    var lbl = getStageLabel(c.lifecycle);
+    var bcls = badgeCls(c.lifecycle);
+    var loc = [c.city,c.state].filter(Boolean).join(', ') || c.country || '-';
+    var dealRows = (c.deals||[]).slice(0,5).map(function(d){
+      return '<div class="deal-row"><span class="d-name">'+d.name+'</span><span class="d-amt">'+fmtMoney(d.amount)+'</span></div>';
+    }).join('');
+    var dealCount = (c.deals||[]).length;
+    m.bindPopup(
+      '<div class="pop-hdr"><div class="pop-name">'+c.name+'</div><div class="pop-loc">'+loc+'</div></div>'+
+      '<div class="pop-body">'+
+        '<div class="pop-row"><span class="pk">Owner</span><span class="pv">'+own+'</span></div>'+
+        '<div class="pop-row"><span class="pk">Industry</span><span class="pv">'+(c.industry||'-')+'</span></div>'+
+        '<div class="pop-row"><span class="pk">Stage</span><span class="badge '+bcls+'">'+lbl+'</span></div>'+
+        '<div class="pop-row"><span class="pk">Annual Rev</span><span class="pv">'+fmtMoney(c.annualrevenue)+'</span></div>'+
+        (c.phone?'<div class="pop-row"><span class="pk">Phone</span><span class="pv">'+c.phone+'</span></div>':'')+
+      '</div>'+
+      (dealRows?'<div class="pop-deals"><div class="pop-dlbl">Open deals ('+dealCount+')</div>'+dealRows+'</div>':'')
+    ,{maxWidth:320});
+    markers.push(m);
   });
+  clusterGroup.addLayers(markers);
 }
 
-function populateFilters(){
-  const oSel=document.getElementById('f-owner');oSel.innerHTML='<option value="">All reps</option>';
-  Object.entries(owners).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([id,nm])=>{const o=document.createElement('option');o.value=id;o.textContent=nm;oSel.appendChild(o);});
-  const iSel=document.getElementById('f-industry');iSel.innerHTML='<option value="">All industries</option>';
-  [...new Set(allCompanies.map(c=>c.industry).filter(Boolean))].sort().forEach(ind=>{const o=document.createElement('option');o.value=ind;o.textContent=ind;iSel.appendChild(o);});
-  buildChips('f-lifecycle',[...new Set(allCompanies.map(c=>c.lifecycle).filter(Boolean))],'lifecycle');
-  buildChips('f-deal',[...new Set(allCompanies.flatMap(c=>(c.deals||[]).map(d=>d.stage)).filter(Boolean))],'deal');
-  document.getElementById('f-search').oninput=e=>{filters.search=e.target.value;renderMarkers();};
-  document.getElementById('f-owner').onchange=e=>{filters.owner=e.target.value;renderMarkers();};
-  document.getElementById('f-industry').onchange=e=>{filters.industry=e.target.value;renderMarkers();};
-  document.getElementById('reset-btn').onclick=resetFilters;
+// ============================================================
+// FILTERS
+// ============================================================
+function populateFilters() {
+  // Owners
+  var oSel = document.getElementById('f-owner');
+  oSel.innerHTML = '<option value="">All reps</option>';
+  var ownerArr = [];
+  for (var id in owners) ownerArr.push({id:id, name:owners[id]});
+  ownerArr.sort(function(a,b){ return a.name.localeCompare(b.name); });
+  ownerArr.forEach(function(o){ var el=document.createElement('option');el.value=o.id;el.textContent=o.name;oSel.appendChild(el); });
+
+  // Industries
+  var inds = {};
+  allCompanies.forEach(function(c){ if(c.industry) inds[c.industry]=1; });
+  var iSel = document.getElementById('f-industry');
+  iSel.innerHTML = '<option value="">All industries</option>';
+  Object.keys(inds).sort().forEach(function(ind){ var el=document.createElement('option');el.value=ind;el.textContent=ind;iSel.appendChild(el); });
+
+  // Lifecycle chips - use labels
+  var lcs = {};
+  allCompanies.forEach(function(c){ if(c.lifecycle) lcs[c.lifecycle]=getStageLabel(c.lifecycle); });
+  buildChips('f-lifecycle', lcs, 'lifecycle');
+
+  // Deal stage chips
+  var dstages = {};
+  allCompanies.forEach(function(c){ (c.deals||[]).forEach(function(d){ if(d.stage) dstages[d.stage]=getStageLabel(d.stage); }); });
+  buildChips('f-deal', dstages, 'deal');
+
+  document.getElementById('f-search').oninput = function(e){ filters.search=e.target.value; renderMarkers(); };
+  document.getElementById('f-owner').onchange = function(e){ filters.owner=e.target.value; renderMarkers(); };
+  document.getElementById('f-industry').onchange = function(e){ filters.industry=e.target.value; renderMarkers(); };
+  document.getElementById('reset-btn').onclick = resetFilters;
 }
 
-function buildChips(gid,values,key){
-  const grp=document.getElementById(gid);grp.innerHTML='<div class="chip on" data-v="">All</div>';
-  values.forEach(v=>{const ch=document.createElement('div');ch.className='chip';ch.dataset.v=v;ch.textContent=fmtStage(v);ch.onclick=()=>{grp.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));ch.classList.add('on');filters[key]=v;renderMarkers();};grp.appendChild(ch);});
-  grp.querySelector('[data-v=""]').onclick=()=>{grp.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));grp.querySelector('[data-v=""]').classList.add('on');filters[key]='';renderMarkers();};
+function buildChips(gid, valMap, key) {
+  var grp = document.getElementById(gid);
+  grp.innerHTML = '<div class="chip on" data-v="">All</div>';
+  Object.keys(valMap).sort().forEach(function(v){
+    var ch = document.createElement('div');
+    ch.className='chip'; ch.dataset.v=v; ch.textContent=valMap[v];
+    ch.onclick = function(){
+      grp.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('on'); });
+      ch.classList.add('on'); filters[key]=v; renderMarkers();
+    };
+    grp.appendChild(ch);
+  });
+  grp.querySelector('[data-v=""]').onclick = function(){
+    grp.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('on'); });
+    grp.querySelector('[data-v=""]').classList.add('on');
+    filters[key]=''; renderMarkers();
+  };
 }
 
-function resetFilters(){
-  filters={search:'',owner:'',industry:'',lifecycle:'',deal:''};
-  document.getElementById('f-search').value='';document.getElementById('f-owner').value='';document.getElementById('f-industry').value='';
-  document.querySelectorAll('.chips .chip').forEach(c=>{c.classList.remove('on');if(c.dataset.v==='')c.classList.add('on');});
+function resetFilters() {
+  filters = {search:'',owner:'',industry:'',lifecycle:'',deal:''};
+  document.getElementById('f-search').value='';
+  document.getElementById('f-owner').value='';
+  document.getElementById('f-industry').value='';
+  document.querySelectorAll('.chips .chip').forEach(function(c){
+    c.classList.remove('on');
+    if(c.dataset.v==='') c.classList.add('on');
+  });
   renderMarkers();
 }
 </script>
